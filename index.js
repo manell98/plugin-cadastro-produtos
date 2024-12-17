@@ -2,10 +2,11 @@ const express = require('express');
 const app = express();
 const port = 3000;
 const axios = require('axios');
+require('dotenv').config();
 
-const apiUrl = '';
-const consumerKey = '';
-const consumerSecret = '';
+const apiUrl = process.env.apiUrl;
+const consumerKey = process.env.consumerKey;
+const consumerSecret = process.env.consumerSecret;
 
 // // Dados dos produtos em massa
 // const produtos = [
