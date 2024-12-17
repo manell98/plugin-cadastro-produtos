@@ -75,31 +75,44 @@ app.get('/produtos', async (req, res) => {
 });
 
 app.post('/cadastro/produto', async (req, res) => {
-
     let camisa = await buscarDados("products/898");
-
-    console.log("CAMISA ENCONTRADA =>", camisa);
-
-    const variations = await buscarDados(`products/898/variations`);
 
     delete camisa.id;
 
     const camisaEditada = {
         ...camisa,
-        name: "Camisa teste via api 3",
-        slug: "camisa-teste-via-api 3",
+        name: "Camisa teste via api 999",
+        slug: "camisa-teste-via-api 999",
         permalink: "https://minuto45.com.br/produto/camisa-teste-via-api/",
         date_created: formatarData(new Date()),
         date_created_gmt: formatarData(new Date()),
         date_modified: formatarData(new Date()),
         date_modified_gmt: formatarData(new Date()),
         exclude_global_add_ons: false,
-        variations,
     }
 
-    console.log("CAMISA EDITADA =>", camisaEditada);
-
     const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
+
+    const idNovoProduto = produtoCadastrado.id;
+
+    const variacoesExistentes = await buscarDados(`products/898/variations`);
+
+    const novoArrayVariacoes = [];
+
+    variacoesExistentes.forEach((variacaoExistente) => {
+        delete variacaoExistente.id;
+
+        novoArrayVariacoes.push(variacaoExistente);
+    });
+
+    novoArrayVariacoes.map(async (novaVariacao) => {
+        const variacao = {
+            ...novaVariacao,
+            manage_stock: false,
+        };
+
+        await cadastrarCamisa(`products/${idNovoProduto}/variations`, variacao);
+    });
 
     res.json(produtoCadastrado);
 });
