@@ -8,53 +8,6 @@ const apiUrl = process.env.apiUrl;
 const consumerKey = process.env.consumerKey;
 const consumerSecret = process.env.consumerSecret;
 
-// // Dados dos produtos em massa
-// const produtos = [
-//     {
-//         name: 'Produto 1',
-//         type: 'simple',
-//         regular_price: '29.90',
-//         description: 'Descrição do Produto 1',
-//         short_description: 'Resumo do Produto 1',
-//         categories: [{ id: 15 }],
-//         images: [{ src: 'https://link-da-imagem.com/produto1.jpg' }],
-//     }
-// ];
-//
-// // Função para cadastrar produtos
-// async function cadastrarProdutosEmMassa(produtos) {
-//     for (const produto of produtos) {
-//         try {
-//             const response = await fetch(
-//                 `${baseUrl}?consumer_key=${consumerKey}&consumer_secret=${consumerSecret}`,
-//                 {
-//                     method: 'POST',
-//                     headers: {
-//                         'Content-Type': 'application/json',
-//                     },
-//                     body: JSON.stringify(produto),
-//                 }
-//             );
-//
-//             const data = await response.json();
-//
-//             if (response.ok) {
-//                 console.log(`✅ Produto "${produto.name}" cadastrado com sucesso!`, data);
-//             } else {
-//                 console.error(
-//                     `❌ Erro ao cadastrar o produto "${produto.name}":`,
-//                     data
-//                 );
-//             }
-//         } catch (error) {
-//             console.error(`❌ Falha na requisição para "${produto.name}":`, error);
-//         }
-//     }
-// }
-//
-// // Executa o cadastro
-// cadastrarProdutosEmMassa(produtos);
-
 // Função para buscar dados da API
 async function buscarDados(endpoint) {
     try {
@@ -72,6 +25,30 @@ async function buscarDados(endpoint) {
         throw error;
     }
 }
+
+async function cadastrarCamisa(endpoint, dadosProduto) {
+    try {
+        console.log("ROTA =>", `${apiUrl}/${endpoint}`)
+
+        const response = await axios.post(`${apiUrl}/${endpoint}`, dadosProduto, {
+            auth: {
+                username: consumerKey,
+                password: consumerSecret
+            },
+        });
+
+        return response.data;
+    } catch (error) {
+        // console.log("ERROR =>", error);
+
+        console.error(`Erro ao Cadastrar Produto ${endpoint}:`, error.message);
+        throw error;
+    }
+}
+
+const formatarData = (date) => {
+    return date.toISOString().split('.')[0];
+};
 
 // Rota para listar todos os produtos
 app.get('/produtos', async (req, res) => {
@@ -95,6 +72,36 @@ app.get('/produtos', async (req, res) => {
             erro: error.message,
         });
     }
+});
+
+app.post('/cadastro/produto', async (req, res) => {
+
+    let camisa = await buscarDados("products/898");
+
+    console.log("CAMISA ENCONTRADA =>", camisa);
+
+    const variations = await buscarDados(`products/898/variations`);
+
+    delete camisa.id;
+
+    const camisaEditada = {
+        ...camisa,
+        name: "Camisa teste via api 3",
+        slug: "camisa-teste-via-api 3",
+        permalink: "https://minuto45.com.br/produto/camisa-teste-via-api/",
+        date_created: formatarData(new Date()),
+        date_created_gmt: formatarData(new Date()),
+        date_modified: formatarData(new Date()),
+        date_modified_gmt: formatarData(new Date()),
+        exclude_global_add_ons: false,
+        variations,
+    }
+
+    console.log("CAMISA EDITADA =>", camisaEditada);
+
+    const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
+
+    res.json(produtoCadastrado);
 });
 
 // Rota para buscar informações de um produto específico pelo ID
@@ -174,6 +181,43 @@ app.get('/atributos', async (req, res) => {
         res.status(500).json({
             sucesso: false,
             mensagem: 'Erro ao buscar os atributos',
+            erro: error.message,
+        });
+    }
+});
+
+app.get('/categorias', async (req, res) => {
+    try {
+        const categorias = await buscarDados('products/categories');
+
+        res.json({
+            status: true,
+            categorias: categorias.map(categoria => ({
+                id: categoria.id,
+                nome: categoria.name,
+                contagem: categoria.count, // Quantos produtos usam essa tag
+            })),
+        });
+    } catch (error) {
+        res.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao buscar as tags',
+            erro: error.message,
+        });
+    }
+});
+
+app.get('/variacoes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const variacoes = await buscarDados(`products/${id}/variations`);
+
+        res.json(variacoes);
+    } catch (error) {
+        res.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao buscar as tags',
             erro: error.message,
         });
     }
