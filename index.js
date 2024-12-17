@@ -3,10 +3,15 @@ const app = express();
 const port = 3000;
 const axios = require('axios');
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const FormData = require('form-data');
 
 const apiUrl = process.env.apiUrl;
 const consumerKey = process.env.consumerKey;
 const consumerSecret = process.env.consumerSecret;
+const username = process.env.username;
+const password = process.env.password;
 
 // Função para buscar dados da API
 async function buscarDados(endpoint) {
@@ -74,21 +79,94 @@ app.get('/produtos', async (req, res) => {
     }
 });
 
+async function downloadAndUploadImage(imageUrl) {
+    const fileName = path.basename(imageUrl); // Extract the file name from the URL
+
+    try {
+        // 1. Download the image from the URL
+        console.log('Downloading image from URL...');
+        const imageResponse = await axios.get(imageUrl, {
+            responseType: 'arraybuffer', // To handle binary files
+        });
+
+        // Save the image temporarily on the local system
+        const tempFilePath = path.resolve(__dirname, fileName);
+        fs.writeFileSync(tempFilePath, imageResponse.data);
+        console.log('Image saved locally:', tempFilePath);
+
+        // 2. Create FormData for the upload
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(tempFilePath), fileName);
+
+        // 3. Upload the image to WordPress
+        console.log('Uploading image to WordPress...');
+        const tokenResponse = await axios.post('https://minuto45.com.br/wp-json/jwt-auth/v1/token', {},
+            {
+                params: {
+                    username,
+                    password,
+                },
+            });
+
+        const token = tokenResponse.data.token;
+
+
+        const uploadResponse = await axios.post('https://minuto45.com.br/wp-json/wp/v2/media', formData, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                ...formData.getHeaders(), // Necessary for FormData
+            },
+        });
+
+        // Upload result
+        console.log('Upload completed:', uploadResponse.data);
+        console.log('Image URL on WordPress:', uploadResponse.data.source_url);
+
+        // Clean up local file after upload
+        fs.unlinkSync(tempFilePath);
+        return uploadResponse.data.id;
+    } catch (error) {
+        console.error(
+            'Error downloading or uploading image:',
+            error.response ? error.response.data : error.message
+        );
+        throw error;
+    }
+}
+
 app.post('/cadastro/produto', async (req, res) => {
     let camisa = await buscarDados("products/898");
 
     delete camisa.id;
 
+    const linksImagens = [
+        "https://img.zhidian-inc.cn/194939/389f7a07/e81a8d13.jpeg", // Link da primeira imagem
+        "https://img.zhidian-inc.cn/194939/4b7ee831/22cfb1e2.jpg",  // Link da segunda imagem
+        "https://img.zhidian-inc.cn/194939/e1f1a9cc/76e17e52.jpg"  // Link da segunda imagem
+    ];
+
+    const idsImagens = [];
+
+    linksImagens.map(async (linkImagem) => {
+        const idImagem = await downloadAndUploadImage(linkImagem);
+        idsImagens.push({ id: idImagem });
+    });
+
+    console.log('IDs das imagens no WordPress:', idsImagens);
+
+    const nomeCamisa = "Corinthians Jogador 2024 – 2025";
+
     const camisaEditada = {
         ...camisa,
-        name: "Camisa teste via api 999",
-        slug: "camisa-teste-via-api 999",
-        permalink: "https://minuto45.com.br/produto/camisa-teste-via-api/",
+        name: nomeCamisa,
+        slug: nomeCamisa,
+        permalink: "https://minuto45.com.br/produto/corinthians-jogador-2024-2025/",
         date_created: formatarData(new Date()),
         date_created_gmt: formatarData(new Date()),
         date_modified: formatarData(new Date()),
         date_modified_gmt: formatarData(new Date()),
         exclude_global_add_ons: false,
+        images: idsImagens,
     }
 
     const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
