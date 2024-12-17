@@ -3,9 +3,9 @@ const app = express();
 const port = 3000;
 const axios = require('axios');
 
-const apiUrl = 'https://minuto45.com.br/wp-json/wc/v3';
-const consumerKey = 'ck_6a757a82c69a00ee7f67132e29f0532b414eada4';
-const consumerSecret = 'cs_1837cfe2691545861a560d4b0e975bb62634834a';
+const apiUrl = '';
+const consumerKey = '';
+const consumerSecret = '';
 
 // // Dados dos produtos em massa
 // const produtos = [
