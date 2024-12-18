@@ -37,8 +37,6 @@ async function buscarDados(endpoint) {
 
 async function cadastrarCamisa(endpoint, dadosProduto) {
     try {
-        console.log("ROTA =>", `${apiUrl}/${endpoint}`)
-
         const response = await axios.post(`${apiUrl}/${endpoint}`, dadosProduto, {
             auth: {
                 username: consumerKey,
@@ -48,8 +46,6 @@ async function cadastrarCamisa(endpoint, dadosProduto) {
 
         return response.data;
     } catch (error) {
-        // console.log("ERROR =>", error);
-
         console.error(`Erro ao Cadastrar Produto ${endpoint}:`, error.message);
         throw error;
     }
@@ -309,6 +305,30 @@ app.get('/variacoes/:id', async (req, res) => {
         res.status(500).json({
             sucesso: false,
             mensagem: 'Erro ao buscar as tags',
+            erro: error.message,
+        });
+    }
+});
+
+app.delete('/produto/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await axios.delete(`${apiUrl}/products/${id}`, {
+            auth: {
+                username: consumerKey,
+                password: consumerSecret,
+            },
+        });
+
+        res.json({
+            sucesso: true,
+            message: "Produto Deletado"
+        }).status(200);
+    } catch (error) {
+        res.status(500).json({
+            sucesso: false,
+            mensagem: 'Erro ao deletar produto',
             erro: error.message,
         });
     }
