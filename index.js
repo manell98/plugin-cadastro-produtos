@@ -159,44 +159,64 @@ app.post('/cadastro/produto', async (req, res) => {
 
             const arrayImagens = [];
 
-            for (const url of imageUrls) {
-                try {
-                    console.log(`Uploading image: ${url}`);
-                    const result = await downloadAndUploadImage(url);
-                    arrayImagens.push(result);
-                } catch (error) {
-                    console.error(`Failed to upload image ${url}:`, error.message);
-                }
+            try {
+                const uploadPromises = imageUrls.map(async (url) => {
+                    try {
+                        console.log(`Uploading image: ${url}`);
+                        const downloadUpload = await downloadAndUploadImage(url);
+
+                        if (downloadUpload) {
+                            return downloadUpload;
+                        }
+                    } catch (error) {
+                        console.error(`Failed to upload image ${url}:`, error.message);
+                        return null;
+                    }
+                });
+
+                const uploadResults = await Promise.all(uploadPromises);
+
+                const promessasCheias = uploadResults.filter(result => result !== null && result !== undefined);
+
+                arrayImagens.push(...promessasCheias);
+
+                console.log('All uploads completed.');
+            } catch (error) {
+                console.error('Unexpected error during the upload process:', error.message);
             }
 
-            const camisaEditada = {
-                ...camisa,
-                name: camisaNova.nome,
-                slug: camisaNova.nome,
-                permalink: `https://minuto45.com.br/produto/${camisaNova.permalink}`,
-                date_created: formatarData(new Date()),
-                date_created_gmt: formatarData(new Date()),
-                date_modified: formatarData(new Date()),
-                date_modified_gmt: formatarData(new Date()),
-                exclude_global_add_ons: false,
-                images: arrayImagens,
-            };
-
-            const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
-
-            const idNovoProduto = produtoCadastrado.id;
-
-            novoArrayVariacoes.map(async (novaVariacao) => {
-                const variacao = {
-                    ...novaVariacao,
-                    image: arrayImagens[0],
-                    manage_stock: false,
+            if (arrayImagens.length > 0) {
+                const camisaEditada = {
+                    ...camisa,
+                    name: camisaNova.nome,
+                    slug: camisaNova.nome,
+                    permalink: `https://minuto45.com.br/produto/${camisaNova.permalink}`,
+                    date_created: formatarData(new Date()),
+                    date_created_gmt: formatarData(new Date()),
+                    date_modified: formatarData(new Date()),
+                    date_modified_gmt: formatarData(new Date()),
+                    exclude_global_add_ons: false,
+                    images: arrayImagens,
                 };
 
-                await cadastrarCamisa(`products/${idNovoProduto}/variations`, variacao);
-            });
+                const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
 
-            return produtoCadastrado;
+                const idNovoProduto = produtoCadastrado.id;
+
+                await Promise.all(novoArrayVariacoes.map(async (novaVariacao) => {
+                    const variacao = {
+                        ...novaVariacao,
+                        image: arrayImagens[0],
+                        manage_stock: false,
+                    };
+
+                    await cadastrarCamisa(`products/${idNovoProduto}/variations`, variacao);
+                }));
+
+                return produtoCadastrado;
+            }
+
+            return null;
         })
     );
 
