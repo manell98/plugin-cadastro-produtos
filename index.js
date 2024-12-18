@@ -121,7 +121,7 @@ async function downloadAndUploadImage(imageUrl) {
         console.log('Image URL on WordPress:', uploadResponse.data.source_url);
 
         // Clean up local file after upload
-        fs.unlinkSync(tempFilePath);
+        // fs.unlinkSync(tempFilePath);
         return uploadResponse.data;
     } catch (error) {
         console.error(
@@ -140,38 +140,16 @@ app.post('/cadastro/produto', async (req, res) => {
     delete camisa.id;
     delete camisa.images;
 
-    const nomeCamisa = "Corinthians Jogador 2024 – 2025 - Preta Teste";
-
-    // const linksImagens = [
-    //     "https://img.zhidian-inc.cn/194939/389f7a07/e81a8d13.jpeg", // Link da primeira imagem
-    //     "https://img.zhidian-inc.cn/194939/4b7ee831/22cfb1e2.jpg",  // Link da segunda imagem
-    //     "https://img.zhidian-inc.cn/194939/e1f1a9cc/76e17e52.jpg"  // Link da segunda imagem
-    // ];
-    //
-    // const idsImagens = await Promise.all(
-    //     linksImagens.map(linkImagem => downloadAndUploadImage(linkImagem))
-    // );
-
-    const imagem = await downloadAndUploadImage("https://img.zhidian-inc.cn/194939/389f7a07/e81a8d13.jpeg");
-    // const imagem2 = await downloadAndUploadImage("https://img.zhidian-inc.cn/194939/4b7ee831/22cfb1e2.jpg");
-    // const imagem3 = await downloadAndUploadImage("https://img.zhidian-inc.cn/194939/e1f1a9cc/76e17e52.jpg");
-
-    const camisaEditada = {
-        ...camisa,
-        name: nomeCamisa,
-        slug: nomeCamisa,
-        permalink: "https://minuto45.com.br/produto/corinthians-jogador-2024-2025/",
-        date_created: formatarData(new Date()),
-        date_created_gmt: formatarData(new Date()),
-        date_modified: formatarData(new Date()),
-        date_modified_gmt: formatarData(new Date()),
-        exclude_global_add_ons: false,
-        images: [imagem],
-    };
-
-    const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
-
-    const idNovoProduto = produtoCadastrado.id;
+    const camisasNovas = [
+        {
+            nome: "Corinthians Jogador 2024 – 2025 - Preta Teste 1",
+            imagem: "https://acdn.mitiendanube.com/stores/002/794/749/products/img_5609-e95b6edaef700f113117159471900220-1024-1024.png",
+        },
+        {
+            nome: "Corinthians Jogador 2022 – 2023 Teste 2",
+            imagem: "https://acdn.mitiendanube.com/stores/002/886/930/products/257fc9e21-1fb02078b809684dc516787309406027-1024-1024.jpeg",
+        }
+    ];
 
     const variacoesExistentes = await buscarDados(`products/${idProduto}/variations`);
 
@@ -184,17 +162,42 @@ app.post('/cadastro/produto', async (req, res) => {
         novoArrayVariacoes.push(variacaoExistente);
     });
 
-    novoArrayVariacoes.map(async (novaVariacao) => {
-        const variacao = {
-            ...novaVariacao,
-            image: imagem,
-            manage_stock: false,
-        };
+    const result = await Promise.all(
+        camisasNovas.map(async (camisaNova) => {
+            const imagem = await downloadAndUploadImage(camisaNova.imagem);
 
-        await cadastrarCamisa(`products/${idNovoProduto}/variations`, variacao);
-    });
+            const camisaEditada = {
+                ...camisa,
+                name: camisaNova.nome,
+                slug: camisaNova.nome,
+                permalink: "https://minuto45.com.br/produto/corinthians-jogador-2024-2025/",
+                date_created: formatarData(new Date()),
+                date_created_gmt: formatarData(new Date()),
+                date_modified: formatarData(new Date()),
+                date_modified_gmt: formatarData(new Date()),
+                exclude_global_add_ons: false,
+                images: [imagem],
+            };
 
-    res.json(produtoCadastrado);
+            const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
+
+            const idNovoProduto = produtoCadastrado.id;
+
+            novoArrayVariacoes.map(async (novaVariacao) => {
+                const variacao = {
+                    ...novaVariacao,
+                    image: imagem,
+                    manage_stock: false,
+                };
+
+                await cadastrarCamisa(`products/${idNovoProduto}/variations`, variacao);
+            });
+
+            return produtoCadastrado;
+        })
+    );
+
+    res.json(result);
 });
 
 // Rota para buscar informações de um produto específico pelo ID
