@@ -118,8 +118,6 @@ async function downloadAndUploadImage(imageUrl) {
             },
         });
 
-        // Upload result
-        console.log('Upload completed:', uploadResponse.data);
         console.log('Image URL on WordPress:', uploadResponse.data.source_url);
 
         // Clean up local file after upload
@@ -142,7 +140,7 @@ app.post('/cadastro/produto', async (req, res) => {
     delete camisa.id;
     delete camisa.images;
 
-    const nomeCamisa = "Corinthians Jogador 2024 – 2025 - Preta";
+    const nomeCamisa = "Corinthians Jogador 2024 – 2025 - Preta Teste";
 
     // const linksImagens = [
     //     "https://img.zhidian-inc.cn/194939/389f7a07/e81a8d13.jpeg", // Link da primeira imagem
@@ -154,6 +152,10 @@ app.post('/cadastro/produto', async (req, res) => {
     //     linksImagens.map(linkImagem => downloadAndUploadImage(linkImagem))
     // );
 
+    const imagem = await downloadAndUploadImage("https://img.zhidian-inc.cn/194939/389f7a07/e81a8d13.jpeg");
+    // const imagem2 = await downloadAndUploadImage("https://img.zhidian-inc.cn/194939/4b7ee831/22cfb1e2.jpg");
+    // const imagem3 = await downloadAndUploadImage("https://img.zhidian-inc.cn/194939/e1f1a9cc/76e17e52.jpg");
+
     const camisaEditada = {
         ...camisa,
         name: nomeCamisa,
@@ -164,7 +166,7 @@ app.post('/cadastro/produto', async (req, res) => {
         date_modified: formatarData(new Date()),
         date_modified_gmt: formatarData(new Date()),
         exclude_global_add_ons: false,
-        // images: idsImagens.map(idImagem => ({ id: idImagem.id })),
+        images: [imagem],
     };
 
     const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
@@ -177,6 +179,7 @@ app.post('/cadastro/produto', async (req, res) => {
 
     variacoesExistentes.forEach((variacaoExistente) => {
         delete variacaoExistente.id;
+        delete variacaoExistente.image;
 
         novoArrayVariacoes.push(variacaoExistente);
     });
@@ -184,6 +187,7 @@ app.post('/cadastro/produto', async (req, res) => {
     novoArrayVariacoes.map(async (novaVariacao) => {
         const variacao = {
             ...novaVariacao,
+            image: imagem,
             manage_stock: false,
         };
 
