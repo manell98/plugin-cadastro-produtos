@@ -128,7 +128,7 @@ async function downloadAndUploadImage(imageUrl) {
             'Error downloading or uploading image:',
             error.response ? error.response.data : error.message
         );
-        throw error;
+        // throw error;
     }
 }
 
@@ -155,7 +155,19 @@ app.post('/cadastro/produto', async (req, res) => {
 
     const result = await Promise.all(
         camisasNovas.map(async (camisaNova) => {
-            const imagem = await downloadAndUploadImage(camisaNova.imagem);
+            const imageUrls = camisaNova.imagens;
+
+            const arrayImagens = [];
+
+            for (const url of imageUrls) {
+                try {
+                    console.log(`Uploading image: ${url}`);
+                    const result = await downloadAndUploadImage(url);
+                    arrayImagens.push(result);
+                } catch (error) {
+                    console.error(`Failed to upload image ${url}:`, error.message);
+                }
+            }
 
             const camisaEditada = {
                 ...camisa,
@@ -167,7 +179,7 @@ app.post('/cadastro/produto', async (req, res) => {
                 date_modified: formatarData(new Date()),
                 date_modified_gmt: formatarData(new Date()),
                 exclude_global_add_ons: false,
-                images: [imagem],
+                images: arrayImagens,
             };
 
             const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
@@ -177,7 +189,7 @@ app.post('/cadastro/produto', async (req, res) => {
             novoArrayVariacoes.map(async (novaVariacao) => {
                 const variacao = {
                     ...novaVariacao,
-                    image: imagem,
+                    image: arrayImagens[0],
                     manage_stock: false,
                 };
 
