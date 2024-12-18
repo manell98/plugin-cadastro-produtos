@@ -1,4 +1,5 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const app = express();
 const port = 3000;
 const axios = require('axios');
@@ -6,6 +7,9 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const FormData = require('form-data');
+
+// Middleware para processar JSON
+app.use(bodyParser.json());
 
 const apiUrl = process.env.apiUrl;
 const consumerKey = process.env.consumerKey;
@@ -140,16 +144,7 @@ app.post('/cadastro/produto', async (req, res) => {
     delete camisa.id;
     delete camisa.images;
 
-    const camisasNovas = [
-        {
-            nome: "Corinthians Jogador 2024 – 2025 - Preta Teste 1",
-            imagem: "https://acdn.mitiendanube.com/stores/002/794/749/products/img_5609-e95b6edaef700f113117159471900220-1024-1024.png",
-        },
-        {
-            nome: "Corinthians Jogador 2022 – 2023 Teste 2",
-            imagem: "https://acdn.mitiendanube.com/stores/002/886/930/products/257fc9e21-1fb02078b809684dc516787309406027-1024-1024.jpeg",
-        }
-    ];
+    const camisasNovas = req.body;
 
     const variacoesExistentes = await buscarDados(`products/${idProduto}/variations`);
 
@@ -170,7 +165,7 @@ app.post('/cadastro/produto', async (req, res) => {
                 ...camisa,
                 name: camisaNova.nome,
                 slug: camisaNova.nome,
-                permalink: "https://minuto45.com.br/produto/corinthians-jogador-2024-2025/",
+                permalink: `https://minuto45.com.br/produto/${camisaNova.permalink}`,
                 date_created: formatarData(new Date()),
                 date_created_gmt: formatarData(new Date()),
                 date_modified: formatarData(new Date()),
