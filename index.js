@@ -10,8 +10,8 @@ const FormData = require('form-data');
 const apiUrl = process.env.apiUrl;
 const consumerKey = process.env.consumerKey;
 const consumerSecret = process.env.consumerSecret;
-const username = process.env.username;
-const password = process.env.password;
+const username = process.env.usernameWp;
+const password = process.env.passwordWp;
 
 // Função para buscar dados da API
 async function buscarDados(endpoint) {
@@ -90,7 +90,7 @@ async function downloadAndUploadImage(imageUrl) {
         });
 
         // Save the image temporarily on the local system
-        const tempFilePath = path.resolve(__dirname, fileName);
+        const tempFilePath = path.resolve(`${__dirname}/camisas-temporarias`, fileName);
         fs.writeFileSync(tempFilePath, imageResponse.data);
         console.log('Image saved locally:', tempFilePath);
 
@@ -124,7 +124,7 @@ async function downloadAndUploadImage(imageUrl) {
 
         // Clean up local file after upload
         fs.unlinkSync(tempFilePath);
-        return uploadResponse.data.id;
+        return uploadResponse.data;
     } catch (error) {
         console.error(
             'Error downloading or uploading image:',
@@ -135,26 +135,24 @@ async function downloadAndUploadImage(imageUrl) {
 }
 
 app.post('/cadastro/produto', async (req, res) => {
-    let camisa = await buscarDados("products/898");
+    const idProduto = 898;
+
+    let camisa = await buscarDados(`products/${idProduto}`);
 
     delete camisa.id;
+    delete camisa.images;
 
-    const linksImagens = [
-        "https://img.zhidian-inc.cn/194939/389f7a07/e81a8d13.jpeg", // Link da primeira imagem
-        "https://img.zhidian-inc.cn/194939/4b7ee831/22cfb1e2.jpg",  // Link da segunda imagem
-        "https://img.zhidian-inc.cn/194939/e1f1a9cc/76e17e52.jpg"  // Link da segunda imagem
-    ];
+    const nomeCamisa = "Corinthians Jogador 2024 – 2025 - Preta";
 
-    const idsImagens = [];
-
-    linksImagens.map(async (linkImagem) => {
-        const idImagem = await downloadAndUploadImage(linkImagem);
-        idsImagens.push({ id: idImagem });
-    });
-
-    console.log('IDs das imagens no WordPress:', idsImagens);
-
-    const nomeCamisa = "Corinthians Jogador 2024 – 2025";
+    // const linksImagens = [
+    //     "https://img.zhidian-inc.cn/194939/389f7a07/e81a8d13.jpeg", // Link da primeira imagem
+    //     "https://img.zhidian-inc.cn/194939/4b7ee831/22cfb1e2.jpg",  // Link da segunda imagem
+    //     "https://img.zhidian-inc.cn/194939/e1f1a9cc/76e17e52.jpg"  // Link da segunda imagem
+    // ];
+    //
+    // const idsImagens = await Promise.all(
+    //     linksImagens.map(linkImagem => downloadAndUploadImage(linkImagem))
+    // );
 
     const camisaEditada = {
         ...camisa,
@@ -166,14 +164,14 @@ app.post('/cadastro/produto', async (req, res) => {
         date_modified: formatarData(new Date()),
         date_modified_gmt: formatarData(new Date()),
         exclude_global_add_ons: false,
-        images: idsImagens,
-    }
+        // images: idsImagens.map(idImagem => ({ id: idImagem.id })),
+    };
 
     const produtoCadastrado = await cadastrarCamisa('products', camisaEditada);
 
     const idNovoProduto = produtoCadastrado.id;
 
-    const variacoesExistentes = await buscarDados(`products/898/variations`);
+    const variacoesExistentes = await buscarDados(`products/${idProduto}/variations`);
 
     const novoArrayVariacoes = [];
 
