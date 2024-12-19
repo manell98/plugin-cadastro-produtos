@@ -87,6 +87,9 @@ async function downloadAndUploadImage(imageUrl) {
         console.log('Downloading image from URL...');
         const imageResponse = await axios.get(imageUrl, {
             responseType: 'arraybuffer', // To handle binary files
+            headers: {
+                'Referer': 'https://www.yupoo.com/', // Set the referer to Yupoo
+            },
         });
 
         // Save the image temporarily on the local system
