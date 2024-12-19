@@ -133,7 +133,7 @@ async function downloadAndUploadImage(imageUrl) {
 }
 
 app.post('/cadastro/produto', async (req, res) => {
-    const idProduto = 898;
+    const idProduto = 1048;
 
     let camisa = await buscarDados(`products/${idProduto}`);
 
@@ -185,7 +185,7 @@ app.post('/cadastro/produto', async (req, res) => {
                 console.error('Unexpected error during the upload process:', error.message);
             }
 
-            if (arrayImagens.length > 0) {
+            if (arrayImagens.length > 1) {
                 const camisaEditada = {
                     ...camisa,
                     name: camisaNova.nome,
@@ -213,10 +213,10 @@ app.post('/cadastro/produto', async (req, res) => {
                     await cadastrarCamisa(`products/${idNovoProduto}/variations`, variacao);
                 }));
 
-                return produtoCadastrado;
+                return { sucesso: true, camisa: camisaNova.nome };
             }
 
-            return null;
+            return { sucesso: false, camisa: camisaNova.nome };
         })
     );
 
