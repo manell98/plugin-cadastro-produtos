@@ -202,37 +202,23 @@ const processAlbums = async () => {
     }
 };
 
-app.post('/cadastro/produto', async (req, res) => {
-    // const retornoAlbunsLocais = await processAlbums();
-    //
-    // const camisasNovas = req.body;
-    //
-    // const arrayObjetoFinal = [];
-    //
-    // camisasNovas.map((camisaNova, indexCamisa) => {
-    //     retornoAlbunsLocais.map((objetoRetorno, indexAlbumLocal) => {
-    //         if (indexCamisa === indexAlbumLocal) {
-    //             arrayObjetoFinal.push({
-    //                 nome: camisaNova.nome,
-    //                 imagens: objetoRetorno.imagens,
-    //                 permalink: camisaNova.permalink,
-    //             });
-    //         }
-    //     })
-    // });
-    //
-    // console.log("arrayObjetoFinal => ", arrayObjetoFinal);
-    //
-    // res.json(arrayObjetoFinal);
+const gerarPermalink = (nomePasta) => {
+    return nomePasta
+        .toLowerCase()                                   // Converte para minúsculo
+        .normalize('NFD')                               // Separa caracteres especiais (ex.: ã -> a + ~)
+        .replace(/[\u0300-\u036f]/g, '')                // Remove os diacríticos (acentos)
+        .trim()                                         // Remove espaços no início e no fim
+        .replace(/\s+/g, '-')                           // Substitui espaços por hífens
+        .replace(/[^a-z0-9-]/g, '');                    // Remove caracteres não alfanuméricos ou hífens
+};
 
+app.post('/cadastro/produto', async (req, res) => {
     const idProduto = 780;
 
     let camisa = await buscarDados(`products/${idProduto}`);
 
     delete camisa.id;
     delete camisa.images;
-
-    const camisasNovas = req.body;
 
     const variacoesExistentes = await buscarDados(`products/${idProduto}/variations`);
 
@@ -248,12 +234,12 @@ app.post('/cadastro/produto', async (req, res) => {
     const retornoAlbunsLocais = await processAlbums();
 
     const result = await Promise.all(
-        camisasNovas.map(async (camisaNova, indexCamisa) => {
+        retornoAlbunsLocais.map(async (album) => {
             const arrayImagens = [];
 
             try {
                 // Para cada imagem do álbum correspondente, faça o upload
-                const uploadPromises = retornoAlbunsLocais[indexCamisa]?.imagens.map(async (url) => {
+                const uploadPromises = album.imagens.map(async (url) => {
                     try {
                         console.log(`Uploading image: ${url}`);
                         const downloadUpload = await uploadImage(url);
@@ -280,9 +266,9 @@ app.post('/cadastro/produto', async (req, res) => {
             if (arrayImagens.length > 1) {
                 const camisaEditada = {
                     ...camisa,
-                    name: camisaNova.nome,
-                    slug: camisaNova.nome,
-                    permalink: `https://minuto45.com.br/produto/${camisaNova.permalink}`,
+                    name: album.album, // Usando o nome do álbum como nome do produto
+                    slug: album.album,
+                    permalink: `https://minuto45.com.br/produto/${gerarPermalink(album.album)}`,
                     date_created: formatarData(new Date()),
                     date_created_gmt: formatarData(new Date()),
                     date_modified: formatarData(new Date()),
@@ -305,10 +291,10 @@ app.post('/cadastro/produto', async (req, res) => {
                     await cadastrarCamisa(`products/${idNovoProduto}/variations`, variacao);
                 }));
 
-                return { sucesso: true, camisa: camisaNova.nome };
+                return { sucesso: true, album: album.album };
             }
 
-            return { sucesso: false, camisa: camisaNova.nome };
+            return { sucesso: false, album: album.album };
         })
     );
 
