@@ -146,6 +146,10 @@ const processAlbums = async () => {
             return extensions.includes(path.extname(filename).toLowerCase());
         };
 
+        // Tamanho máximo e mínimo permitido para as imagens (em bytes)
+        const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+        const MIN_SIZE = 10 * 1024; // 10 KB
+
         // Ler todas as subpastas no diretório principal com metadados
         const albums = fs.readdirSync(mainDir, { withFileTypes: true })
             .filter(dirent => dirent.isDirectory())
@@ -167,11 +171,6 @@ const processAlbums = async () => {
         // Percorrer cada subpasta na ordem correta
         albums.forEach(album => {
             const albumPath = path.join(mainDir, album.name);
-
-            // console.log("album => ", album);
-            //
-            // console.log("====================================")
-
             const urlsImagens = [];
 
             // Ler arquivos dentro da subpasta
@@ -180,12 +179,16 @@ const processAlbums = async () => {
             files.forEach(file => {
                 if (isImage(file)) {
                     const imagePath = path.join(albumPath, file);
-                    // console.log('Imagem encontrada:', imagePath);
-                    // Aqui você pode fazer algo com a imagem, como copiá-la, movê-la, etc.
-                    urlsImagens.push(imagePath);
+                    const stats = fs.statSync(imagePath);
+
+                    // Verificar se o tamanho da imagem está dentro do limite
+                    if (stats.size >= MIN_SIZE && stats.size <= MAX_SIZE) {
+                        urlsImagens.push(imagePath);
+                    }
                 }
             });
 
+            // Adicionar o álbum e suas imagens ao array final
             objetoImagensAlbuns.push({
                 album: album.name,
                 imagens: urlsImagens,
@@ -198,7 +201,6 @@ const processAlbums = async () => {
         console.error('Erro ao processar os álbuns:', error);
     }
 };
-
 
 app.post('/cadastro/produto', async (req, res) => {
     // const retornoAlbunsLocais = await processAlbums();
